@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 
 const HomePage: React.FC = () => {
   const [attendees, setAttendees] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
@@ -13,17 +15,24 @@ const HomePage: React.FC = () => {
     }
 
     const fetchSheetData = async () => {
-      const response = await fetch("/api/sheets");
-      if (response.ok) {
+      try {
+        const response = await fetch("/api/sheets");
+        if (!response.ok) throw new Error("Failed to fetch data");
+
         const data = await response.json();
         setAttendees(data.data);
-      } else {
-        alert("Failed to fetch data from Google Sheets");
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchSheetData();
   }, []);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
