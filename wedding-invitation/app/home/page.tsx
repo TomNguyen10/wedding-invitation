@@ -13,8 +13,8 @@ const HomePage: React.FC = () => {
   const [newAttendee, setNewAttendee] = useState({
     name: "",
     email: "",
-    role: "",
-    sent: "",
+    role: "normal",
+    sent: "No",
   });
 
   useEffect(() => {
@@ -49,6 +49,15 @@ const HomePage: React.FC = () => {
     setTempValues(updatedValues);
   };
 
+  const handleSelectChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    columnIndex: number
+  ) => {
+    const updatedValues = [...tempValues];
+    updatedValues[columnIndex] = e.target.value;
+    setTempValues(updatedValues);
+  };
+
   const handleSaveClick = async () => {
     try {
       await fetch("/api/sheets", {
@@ -73,6 +82,17 @@ const HomePage: React.FC = () => {
   };
 
   const handleAddRow = async () => {
+    if (!newAttendee.name.trim()) {
+      alert("Name cannot be empty.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newAttendee.email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
     try {
       const newRow = [
         newAttendee.name,
@@ -91,7 +111,7 @@ const HomePage: React.FC = () => {
 
       setAttendees((prev) => [...prev, newRow]);
       alert("New attendee added!");
-      setNewAttendee({ name: "", email: "", role: "", sent: "" });
+      setNewAttendee({ name: "", email: "", role: "normal", sent: "No" });
     } catch (err) {
       alert("Failed to add attendee.");
       console.error(err);
@@ -145,22 +165,16 @@ const HomePage: React.FC = () => {
               setNewAttendee({ ...newAttendee, email: e.target.value })
             }
           />
-          <Input
-            type="text"
-            placeholder="Role"
+          <select
             value={newAttendee.role}
             onChange={(e) =>
               setNewAttendee({ ...newAttendee, role: e.target.value })
             }
-          />
-          <Input
-            type="text"
-            placeholder="Sent Status"
-            value={newAttendee.sent}
-            onChange={(e) =>
-              setNewAttendee({ ...newAttendee, sent: e.target.value })
-            }
-          />
+            className="border rounded p-2">
+            <option value="normal">Normal</option>
+            <option value="bachelor">Bachelor</option>
+            <option value="bachelorette">Bachelorette</option>
+          </select>
           <Button onClick={handleAddRow}>Add Attendee</Button>
         </div>
       </div>
@@ -195,18 +209,23 @@ const HomePage: React.FC = () => {
                     />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input
-                      type="text"
+                    <select
                       value={tempValues[2]}
-                      onChange={(e) => handleInputChange(e, 2)}
-                    />
+                      onChange={(e) => handleSelectChange(e, 2)}
+                      className="border rounded p-1">
+                      <option value="normal">Normal</option>
+                      <option value="bachelor">Bachelor</option>
+                      <option value="bachelorette">Bachelorette</option>
+                    </select>
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input
-                      type="text"
+                    <select
                       value={tempValues[3]}
-                      onChange={(e) => handleInputChange(e, 3)}
-                    />
+                      onChange={(e) => handleSelectChange(e, 3)}
+                      className="border rounded p-1">
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
                   </td>
                   <td className="border border-gray-300 p-2">
                     <Button onClick={handleSaveClick}>Save</Button>
@@ -218,11 +237,15 @@ const HomePage: React.FC = () => {
                   <td className="border border-gray-300 p-2">{attendee[1]}</td>
                   <td className="border border-gray-300 p-2">{attendee[2]}</td>
                   <td className="border border-gray-300 p-2">{attendee[3]}</td>
-                  <td className="border border-gray-300 p-2">
-                    <Button onClick={() => handleEditClick(index)}>Edit</Button>
+                  <td className="border border-gray-300 p-2 text-center">
+                    <Button
+                      onClick={() => handleEditClick(index)}
+                      variant={"outline"}>
+                      Edit
+                    </Button>{" "}
                     <Button
                       onClick={() => handleDeleteRow(index)}
-                      variant="destructive">
+                      variant={"destructive"}>
                       Delete
                     </Button>{" "}
                   </td>
