@@ -3,6 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EditIcon } from "lucide-react";
+import { TrashIcon } from "lucide-react";
+import { FaCheckSquare, FaRegSquare } from "react-icons/fa";
 
 const HomePage: React.FC = () => {
   const [attendees, setAttendees] = useState<any[]>([]);
@@ -17,6 +20,8 @@ const HomePage: React.FC = () => {
     sent: "No",
   });
 
+  const [checkboxStates, setCheckboxStates] = useState<boolean[]>([]);
+
   useEffect(() => {
     const fetchSheetData = async () => {
       try {
@@ -25,6 +30,7 @@ const HomePage: React.FC = () => {
 
         const data = await response.json();
         setAttendees(data.data);
+        setCheckboxStates(new Array(data.data.length).fill(false));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -88,6 +94,7 @@ const HomePage: React.FC = () => {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(newAttendee.email)) {
       alert("Please enter a valid email address.");
       return;
@@ -111,7 +118,10 @@ const HomePage: React.FC = () => {
 
       setAttendees((prev) => [...prev, newRow]);
       alert("New attendee added!");
+
+      // Reset input fields and checkbox states
       setNewAttendee({ name: "", email: "", role: "normal", sent: "No" });
+      setCheckboxStates((prev) => [...prev, false]);
     } catch (err) {
       alert("Failed to add attendee.");
       console.error(err);
@@ -131,12 +141,19 @@ const HomePage: React.FC = () => {
       });
 
       setAttendees((prev) => prev.filter((_, i) => i !== index));
+      setCheckboxStates((prev) => prev.filter((_, i) => i !== index));
 
       alert("Attendee deleted!");
     } catch (err) {
       alert("Failed to delete attendee.");
       console.error(err);
     }
+  };
+
+  const handleCheckboxToggle = (index: number) => {
+    setCheckboxStates((prev) =>
+      prev.map((checked, i) => (i === index ? !checked : checked))
+    );
   };
 
   if (loading) return <div>Loading...</div>;
@@ -146,6 +163,7 @@ const HomePage: React.FC = () => {
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Attendee List</h1>
 
+      {/* New Attendee Form */}
       <div className="mb-4">
         <h2 className="text-xl font-semibold">Add New Attendee</h2>
         <div className="flex space-x-2">
@@ -179,6 +197,7 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Attendees Table */}
       <table className="min-w-full border-collapse border border-gray-300">
         <thead>
           <tr>
@@ -187,6 +206,8 @@ const HomePage: React.FC = () => {
             <th className="border border-gray-300 p-2">Role</th>
             <th className="border border-gray-300 p-2">Sent</th>
             <th className="border border-gray-300 p-2">Actions</th>
+            <th className="border border-gray-300 p-2">Checkbox</th>{" "}
+            {/* Checkbox Column */}
           </tr>
         </thead>
         <tbody>
@@ -194,6 +215,7 @@ const HomePage: React.FC = () => {
             <tr key={index}>
               {editIndex === index ? (
                 <>
+                  {/* Editable Fields */}
                   <td className="border border-gray-300 p-2">
                     <Input
                       type="text"
@@ -219,35 +241,53 @@ const HomePage: React.FC = () => {
                     </select>
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <select
-                      value={tempValues[3]}
-                      onChange={(e) => handleSelectChange(e, 3)}
-                      className="border rounded p-1">
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
+                    {/* Sent Status */}
+                    {tempValues[3]}
                   </td>
+                  {/* Save button in actions column */}
                   <td className="border border-gray-300 p-2">
                     <Button onClick={handleSaveClick}>Save</Button>
                   </td>
                 </>
               ) : (
                 <>
+                  {/* Displaying attendee details */}
                   <td className="border border-gray-300 p-2">{attendee[0]}</td>
                   <td className="border border-gray-300 p-2">{attendee[1]}</td>
                   <td className="border border-gray-300 p-2">{attendee[2]}</td>
                   <td className="border border-gray-300 p-2">{attendee[3]}</td>
+
+                  {/* Actions Column */}
                   <td className="border border-gray-300 p-2 text-center">
+                    {/* Edit Action */}
                     <Button
                       onClick={() => handleEditClick(index)}
                       variant={"outline"}>
-                      Edit
+                      <EditIcon size={16} />
                     </Button>{" "}
+                    {/* Delete Action */}
                     <Button
                       onClick={() => handleDeleteRow(index)}
                       variant={"destructive"}>
-                      Delete
+                      <TrashIcon size={16} />
                     </Button>{" "}
+                  </td>
+
+                  {/* Checkbox Column */}
+                  <td className="border border-gray-300 p-2 text-center">
+                    {checkboxStates[index] ? (
+                      // If checked state is true, show checked icon
+                      <FaCheckSquare
+                        onClick={() => handleCheckboxToggle(index)}
+                        className="text-green-500 cursor-pointer"
+                      />
+                    ) : (
+                      // If unchecked state is false, show unchecked icon
+                      <FaRegSquare
+                        onClick={() => handleCheckboxToggle(index)}
+                        className="cursor-pointer"
+                      />
+                    )}
                   </td>
                 </>
               )}
