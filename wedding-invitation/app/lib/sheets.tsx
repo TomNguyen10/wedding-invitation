@@ -1,4 +1,4 @@
-import { google, sheets_v4 } from "googleapis";
+import { google, sheets_v4, sheets_v4 as sheetsTypes } from "googleapis";
 
 const sheets = google.sheets("v4");
 
@@ -37,14 +37,14 @@ export const updateSheetData = async (
   const auth = await getAuth();
 
   const response = await sheets.spreadsheets.values.update({
-    auth: auth as any,
+    auth,
     spreadsheetId,
     range,
     valueInputOption: "USER_ENTERED",
-    resource: {
+    requestBody: {
       values: [values],
     },
-  });
+  } as sheetsTypes.Params$Resource$Spreadsheets$Values$Update);
 
   return response.data;
 };
@@ -74,7 +74,7 @@ export const deleteRowFromSheet = async (
 
   const sheetId = await getSheetId(spreadsheetId);
 
-  const sheetsApi = google.sheets({ version: "v4", auth });
+  const sheetsApi = google.sheets({ version: "v4", auth: auth as any });
 
   const requestBody = {
     requests: [
@@ -93,6 +93,6 @@ export const deleteRowFromSheet = async (
 
   await sheetsApi.spreadsheets.batchUpdate({
     spreadsheetId,
-    resource: requestBody,
+    requestBody,
   });
 };
