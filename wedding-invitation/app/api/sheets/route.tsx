@@ -5,7 +5,7 @@ import {
   deleteRowFromSheet,
 } from "../../lib/sheets";
 
-const SHEET_ID = process.env.SHEET_ID;
+const SHEET_ID = process.env.SHEET_ID!;
 const RANGE = "Sheet1!A:D";
 
 export async function GET() {

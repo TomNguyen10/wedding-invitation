@@ -119,7 +119,6 @@ const HomePage: React.FC = () => {
       setAttendees((prev) => [...prev, newRow]);
       alert("New attendee added!");
 
-      // Reset input fields and checkbox states
       setNewAttendee({ name: "", email: "", role: "normal", sent: "No" });
       setCheckboxStates((prev) => [...prev, false]);
     } catch (err) {
@@ -156,6 +155,37 @@ const HomePage: React.FC = () => {
     );
   };
 
+  const handleSendEmail = async (index: number, email: string) => {
+    try {
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) throw new Error("Failed to send email");
+
+      // Update the "sent" status in Google Sheets
+      const updatedAttendees = [...attendees];
+      updatedAttendees[index][3] = "Yes";
+      setAttendees(updatedAttendees);
+
+      await fetch("/api/sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rowIndex: index,
+          values: updatedAttendees[index],
+        }),
+      });
+
+      alert("Email sent successfully!");
+    } catch (err) {
+      alert("Failed to send email.");
+      console.error(err);
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
@@ -163,7 +193,6 @@ const HomePage: React.FC = () => {
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Attendee List</h1>
 
-      {/* New Attendee Form */}
       <div className="mb-4">
         <h2 className="text-xl font-semibold">Add New Attendee</h2>
         <div className="flex space-x-2">
@@ -197,7 +226,6 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Attendees Table */}
       <table className="min-w-full border-collapse border border-gray-300">
         <thead>
           <tr>
@@ -207,7 +235,7 @@ const HomePage: React.FC = () => {
             <th className="border border-gray-300 p-2">Sent</th>
             <th className="border border-gray-300 p-2">Actions</th>
             <th className="border border-gray-300 p-2">Checkbox</th>{" "}
-            {/* Checkbox Column */}
+            <th className="border border-gray-300 p-2">Send Email</th>
           </tr>
         </thead>
         <tbody>
@@ -215,7 +243,6 @@ const HomePage: React.FC = () => {
             <tr key={index}>
               {editIndex === index ? (
                 <>
-                  {/* Editable Fields */}
                   <td className="border border-gray-300 p-2">
                     <Input
                       type="text"
@@ -241,31 +268,25 @@ const HomePage: React.FC = () => {
                     </select>
                   </td>
                   <td className="border border-gray-300 p-2">
-                    {/* Sent Status */}
                     {tempValues[3]}
                   </td>
-                  {/* Save button in actions column */}
                   <td className="border border-gray-300 p-2">
                     <Button onClick={handleSaveClick}>Save</Button>
                   </td>
                 </>
               ) : (
                 <>
-                  {/* Displaying attendee details */}
                   <td className="border border-gray-300 p-2">{attendee[0]}</td>
                   <td className="border border-gray-300 p-2">{attendee[1]}</td>
                   <td className="border border-gray-300 p-2">{attendee[2]}</td>
                   <td className="border border-gray-300 p-2">{attendee[3]}</td>
 
-                  {/* Actions Column */}
                   <td className="border border-gray-300 p-2 text-center">
-                    {/* Edit Action */}
                     <Button
                       onClick={() => handleEditClick(index)}
                       variant={"outline"}>
                       <EditIcon size={16} />
                     </Button>{" "}
-                    {/* Delete Action */}
                     <Button
                       onClick={() => handleDeleteRow(index)}
                       variant={"destructive"}>
@@ -273,16 +294,21 @@ const HomePage: React.FC = () => {
                     </Button>{" "}
                   </td>
 
-                  {/* Checkbox Column */}
+                  <td className="border border-gray-300 p-2 text-center">
+                    <Button
+                      onClick={() => handleSendEmail(index, attendee[1])}
+                      disabled={attendee[3] === "Yes"}>
+                      {attendee[3] === "Yes" ? "Sent" : "Send Email"}
+                    </Button>
+                  </td>
+
                   <td className="border border-gray-300 p-2 text-center">
                     {checkboxStates[index] ? (
-                      // If checked state is true, show checked icon
                       <FaCheckSquare
                         onClick={() => handleCheckboxToggle(index)}
                         className="text-green-500 cursor-pointer"
                       />
                     ) : (
-                      // If unchecked state is false, show unchecked icon
                       <FaRegSquare
                         onClick={() => handleCheckboxToggle(index)}
                         className="cursor-pointer"
