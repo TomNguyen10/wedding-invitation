@@ -1,4 +1,4 @@
-import { google } from "googleapis";
+import { google, sheets_v4 } from "googleapis";
 
 const sheets = google.sheets("v4");
 
@@ -21,7 +21,7 @@ export const fetchSheetData = async (spreadsheetId: string, range: string) => {
   const auth = await getAuth();
 
   const response = await sheets.spreadsheets.values.get({
-    auth,
+    auth: auth as any,
     spreadsheetId,
     range,
   });
@@ -37,7 +37,7 @@ export const updateSheetData = async (
   const auth = await getAuth();
 
   const response = await sheets.spreadsheets.values.update({
-    auth,
+    auth: auth as any,
     spreadsheetId,
     range,
     valueInputOption: "USER_ENTERED",
@@ -52,11 +52,18 @@ export const updateSheetData = async (
 export const getSheetId = async (spreadsheetId: string) => {
   const auth = await getAuth();
   const response = await sheets.spreadsheets.get({
-    auth,
+    auth: auth as any,
     spreadsheetId,
   });
 
-  return response.data.sheets[0].properties.sheetId;
+  if (
+    response.data.sheets &&
+    response.data.sheets[0] &&
+    response.data.sheets[0].properties
+  ) {
+    return response.data.sheets[0].properties.sheetId;
+  }
+  throw new Error("Sheet ID not found");
 };
 
 export const deleteRowFromSheet = async (

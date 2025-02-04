@@ -32,7 +32,11 @@ const HomePage: React.FC = () => {
         setAttendees(data.data);
         setCheckboxStates(new Array(data.data.length).fill(false));
       } catch (err) {
-        setError(err.message);
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("An unknown error occurred");
+        }
       } finally {
         setLoading(false);
       }
