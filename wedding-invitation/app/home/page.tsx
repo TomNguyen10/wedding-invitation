@@ -161,20 +161,29 @@ const HomePage: React.FC = () => {
 
   const handleSendEmail = async (index: number, email: string) => {
     try {
-      const response = await fetch("/api/send-email", {
+      const emailResponse = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          to: email,
+          subject: "Your Subject",
+          message: "Your Message",
+        }),
       });
 
-      if (!response.ok) throw new Error("Failed to send email");
+      if (!emailResponse.ok) {
+        const emailData = await emailResponse.json();
+        throw new Error(emailData.message || "Failed to send email");
+      }
 
-      // Update the "sent" status in Google Sheets
+      const emailData = await emailResponse.json();
+      alert(emailData.message);
+
       const updatedAttendees = [...attendees];
       updatedAttendees[index][3] = "Yes";
-      setAttendees(updatedAttendees);
+      setAttendees([...updatedAttendees]);
 
-      await fetch("/api/sheets", {
+      const sheetsResponse = await fetch("/api/sheets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -183,10 +192,15 @@ const HomePage: React.FC = () => {
         }),
       });
 
-      alert("Email sent successfully!");
-    } catch (err) {
-      alert("Failed to send email.");
-      console.error(err);
+      const sheetsData = await sheetsResponse.json();
+      if (!sheetsResponse.ok) {
+        throw new Error(sheetsData.message || "Failed to update Google Sheets");
+      }
+
+      alert("Email sent and attendee updated!");
+    } catch (err: any) {
+      console.error("Error:", err.message);
+      alert(`Failed to send email: ${err.message}`);
     }
   };
 
