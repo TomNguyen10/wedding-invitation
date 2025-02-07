@@ -1,4 +1,4 @@
-import { google, sheets_v4, sheets_v4 as sheetsTypes } from "googleapis";
+import { google, sheets_v4 as sheetsTypes } from "googleapis";
 
 const sheets = google.sheets("v4");
 
@@ -49,30 +49,30 @@ export const updateSheetData = async (
   return response.data;
 };
 
-export const getSheetId = async (spreadsheetId: string) => {
+export const getSheetId = async (spreadsheetId: string, sheetName: string) => {
   const auth = await getAuth();
   const response = await sheets.spreadsheets.get({
-    auth: auth as any,
+    auth: auth as sheetsTypes.Params$Resource$Spreadsheets$Get["auth"],
     spreadsheetId,
   });
 
-  if (
-    response.data.sheets &&
-    response.data.sheets[0] &&
-    response.data.sheets[0].properties
-  ) {
-    return response.data.sheets[0].properties.sheetId;
+  const sheet = response.data.sheets?.find(
+    (s) => s.properties?.title === sheetName
+  );
+
+  if (sheet && sheet.properties?.sheetId !== undefined) {
+    return sheet.properties.sheetId;
   }
-  throw new Error("Sheet ID not found");
+  throw new Error(`Sheet ID not found for sheet: ${sheetName}`);
 };
 
 export const deleteRowFromSheet = async (
   spreadsheetId: string,
-  rowIndex: number
+  rowIndex: number,
+  sheetName: string
 ) => {
   const auth = await getAuth();
-
-  const sheetId = await getSheetId(spreadsheetId);
+  const sheetId = await getSheetId(spreadsheetId, sheetName);
 
   const sheetsApi = google.sheets({ version: "v4", auth: auth as any });
 

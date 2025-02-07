@@ -6,10 +6,13 @@ import {
 } from "../../lib/sheets";
 
 const SHEET_ID = process.env.SHEET_ID!;
-const RANGE = "Sheet1!A:D";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const sheetName = searchParams.get("sheet") || "Hanoi";
+    const RANGE = `${sheetName}!A:D`;
+
     const data = await fetchSheetData(SHEET_ID, RANGE);
     return NextResponse.json({ data });
   } catch (error) {
@@ -22,12 +25,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { rowIndex, values } = await request.json();
+  const { rowIndex, values, sheet } = await request.json();
+  const sheetName = sheet || "Hanoi";
 
   try {
     await updateSheetData(
       SHEET_ID,
-      `Sheet1!A${rowIndex + 1}:D${rowIndex + 1}`,
+      `${sheetName}!A${rowIndex + 1}:D${rowIndex + 1}`,
       values
     );
     return NextResponse.json({ message: "Update successful" });
@@ -41,10 +45,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const { rowIndex } = await request.json();
-
+  const { rowIndex, sheet } = await request.json();
+  const sheetName = sheet || "Hanoi";
   try {
-    await deleteRowFromSheet(SHEET_ID, rowIndex);
+    await deleteRowFromSheet(SHEET_ID, rowIndex, sheetName);
     return NextResponse.json({ message: "Delete successful" });
   } catch (error) {
     console.error("Error deleting sheet data:", error);
