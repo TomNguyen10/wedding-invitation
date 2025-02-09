@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EditIcon } from "lucide-react";
 import { TrashIcon } from "lucide-react";
+import { Mail } from "lucide-react";
+import {
+  fetchSheetData,
+  handleSaveClick,
+  handleAddRow,
+  handleDeleteRow,
+  handleSendEmail,
+  handleEditClick,
+} from "../lib/attendeeServices";
 
 const HomePage: React.FC = () => {
   const [hanoiAttendees, setHanoiAttendees] = useState<any[]>([]);
@@ -16,243 +25,35 @@ const HomePage: React.FC = () => {
     index: number;
     location: string;
   } | null>(null);
+
   const [newAttendee, setNewAttendee] = useState({
     name: "",
     email: "",
+    attend: "Happily Accepted",
+    plusOne: "No",
+    note: "",
     role: "normal",
-    sent: "No",
-    location: "",
+    sent: "False",
+    location: "hanoi",
   });
 
   useEffect(() => {
-    const fetchSheetData = async (sheet: string, setter: Function) => {
-      try {
-        const response = await fetch(`/api/sheets?sheet=${sheet}`);
-        if (!response.ok) throw new Error(`Failed to fetch ${sheet} data`);
-        const data = await response.json();
-        setter(data.data);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("An unknown error occurred");
-        }
-      }
-    };
-
     Promise.all([
-      fetchSheetData("Hanoi", setHanoiAttendees),
-      fetchSheetData("Guangzhou", setGuangzhouAttendees),
+      fetchSheetData("Hanoi", setHanoiAttendees, setError),
+      fetchSheetData("Guangzhou", setGuangzhouAttendees, setError),
     ]).finally(() => setLoading(false));
   }, []);
 
-  const handleEditClick = (index: number, location: string) => {
-    setEditIndex({ index, location });
-    setTempValues(
-      location === "hanoi" ? hanoiAttendees[index] : guangzhouAttendees[index]
-    );
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    columnIndex: number
-  ) => {
-    const updatedValues = [...tempValues];
-    updatedValues[columnIndex] = e.target.value;
-    setTempValues(updatedValues);
-  };
-
-  const handleSelectChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-    columnIndex: number
-  ) => {
-    const updatedValues = [...tempValues];
-    updatedValues[columnIndex] = e.target.value;
-    setTempValues(updatedValues);
-  };
-
-  const handleSaveClick = async () => {
-    if (!editIndex) return;
-
-    try {
-      await fetch("/api/sheets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          rowIndex: editIndex.index,
-          values: tempValues,
-          location: editIndex.location,
-        }),
-      });
-
-      if (editIndex.location === "hanoi") {
-        setHanoiAttendees((prev) => {
-          const newAttendees = [...prev];
-          newAttendees[editIndex.index] = tempValues;
-          return newAttendees;
-        });
-      } else {
-        setGuangzhouAttendees((prev) => {
-          const newAttendees = [...prev];
-          newAttendees[editIndex.index] = tempValues;
-          return newAttendees;
-        });
-      }
-      alert("Update successful!");
-    } catch (err) {
-      alert("Failed to update data.");
-      console.error(err);
-    } finally {
-      setEditIndex(null);
-    }
-  };
-
-  const handleAddRow = async () => {
-    if (!newAttendee.name.trim()) {
-      alert("Name cannot be empty.");
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newAttendee.email)) {
-      alert("Please enter a valid email address.");
-      return;
-    }
-
-    try {
-      const newRow = [
-        newAttendee.name,
-        newAttendee.email,
-        newAttendee.role,
-        newAttendee.sent,
-      ];
-
-      await fetch("/api/sheets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          rowIndex:
-            newAttendee.location === "hanoi"
-              ? hanoiAttendees.length
-              : guangzhouAttendees.length,
-          values: newRow,
-          location: newAttendee.location,
-        }),
-      });
-
-      if (newAttendee.location === "hanoi") {
-        setHanoiAttendees((prev) => [...prev, newRow]);
-      } else {
-        setGuangzhouAttendees((prev) => [...prev, newRow]);
-      }
-
-      alert("New attendee added!");
-      setNewAttendee({
-        name: "",
-        email: "",
-        role: "normal",
-        sent: "No",
-        location: "hanoi",
-      });
-    } catch (err) {
-      alert("Failed to add attendee.");
-      console.error(err);
-    }
-  };
-
-  const handleDeleteRow = async (index: number, location: string) => {
-    if (!confirm("Are you sure you want to delete this attendee?")) return;
-
-    try {
-      await fetch("/api/sheets", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ rowIndex: index, location }),
-      });
-
-      if (location === "hanoi") {
-        setHanoiAttendees((prev) => prev.filter((_, i) => i !== index));
-      } else {
-        setGuangzhouAttendees((prev) => prev.filter((_, i) => i !== index));
-      }
-
-      alert("Attendee deleted!");
-    } catch (err) {
-      alert("Failed to delete attendee.");
-      console.error(err);
-    }
-  };
-
-  const handleSendEmail = async (
-    index: number,
-    email: string,
-    sheetType: "hanoi" | "guangzhou"
-  ) => {
-    try {
-      const emailResponse = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: email,
-          subject: "Your Subject",
-          message: "Your Message",
-        }),
-      });
-
-      if (!emailResponse.ok) {
-        const emailData = await emailResponse.json();
-        throw new Error(emailData.message || "Failed to send email");
-      }
-
-      const emailData = await emailResponse.json();
-      alert(emailData.message);
-
-      const updatedAttendees =
-        sheetType === "hanoi" ? [...hanoiAttendees] : [...guangzhouAttendees];
-      updatedAttendees[index][3] = "Yes";
-
-      if (sheetType === "hanoi") {
-        setHanoiAttendees([...updatedAttendees]);
-      } else {
-        setGuangzhouAttendees([...updatedAttendees]);
-      }
-
-      const sheetsResponse = await fetch("/api/sheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rowIndex: index,
-          values: updatedAttendees[index],
-          sheetType,
-        }),
-      });
-
-      const sheetsData = await sheetsResponse.json();
-      if (!sheetsResponse.ok) {
-        throw new Error(sheetsData.message || "Failed to update Google Sheets");
-      }
-
-      alert("Email sent and attendee updated!");
-    } catch (err: any) {
-      console.error("Error:", err.message);
-      alert(`Failed to send email: ${err.message}`);
-    }
-  };
-
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (error) {
+    console.error("Error fetching data:", error);
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Attendee List</h1>
 
-      {/* Add New Attendee Form */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Add New Attendee</h2>
         <div className="flex gap-2 flex-wrap">
@@ -293,7 +94,17 @@ const HomePage: React.FC = () => {
             <option value="hanoi">Hanoi</option>
             <option value="guangzhou">Guangzhou</option>
           </select>
-          <Button onClick={handleAddRow}>Add Attendee</Button>
+          <Button
+            onClick={() =>
+              handleAddRow(
+                newAttendee,
+                setHanoiAttendees,
+                setGuangzhouAttendees,
+                setNewAttendee
+              )
+            }>
+            Add Attendee
+          </Button>
         </div>
       </div>
 
@@ -305,160 +116,202 @@ const HomePage: React.FC = () => {
             <tr>
               <th className="border border-gray-300 p-2">Name</th>
               <th className="border border-gray-300 p-2">Email</th>
+              <th className="border border-gray-300 p-2">Attend</th>
+              <th className="border border-gray-300 p-2">Bring Plus One</th>
+              <th className="border border-gray-300 p-2">Note</th>
               <th className="border border-gray-300 p-2">Role</th>
-              <th className="border border-gray-300 p-2">Sent</th>
-              <th className="border border-gray-300 p-2">Actions</th>
+              <th className="border border-gray-300 p-2">Send Email</th>
+              <th className="border border-gray-300 p-2">Edit</th>
+              <th className="border border-gray-300 p-2">Delete</th>
               <th className="border border-gray-300 p-2">Send Email</th>
             </tr>
           </thead>
           <tbody>
-            {hanoiAttendees.map((attendee, index) => (
-              <tr key={index}>
-                {editIndex?.index === index &&
-                editIndex?.location === "hanoi" ? (
-                  <>
-                    <td className="border border-gray-300 p-2">
-                      <Input
-                        value={tempValues[0]}
-                        onChange={(e) => handleInputChange(e, 0)}
-                      />
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      <Input
-                        value={tempValues[1]}
-                        onChange={(e) => handleInputChange(e, 1)}
-                      />
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      <select
-                        value={tempValues[2]}
-                        onChange={(e) => handleSelectChange(e, 2)}
-                        className="border rounded p-1 w-full">
-                        <option value="normal">Normal</option>
-                        <option value="bachelor">Bachelor</option>
-                        <option value="bachelorette">Bachelorette</option>
-                      </select>
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      {tempValues[3]}
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      <Button onClick={handleSaveClick}>Save</Button>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <td className="border border-gray-300 p-2">
-                      {attendee[0]}
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      {attendee[1]}
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      {attendee[2]}
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      {attendee[3]}
-                    </td>
-                    <td className="border border-gray-300 p-2 space-x-2">
-                      <Button
-                        onClick={() => handleEditClick(index, "hanoi")}
-                        variant="outline"
-                        size="sm">
-                        <EditIcon className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteRow(index, "hanoi")}
-                        variant="destructive"
-                        size="sm">
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      <Button
-                        onClick={() =>
-                          handleSendEmail(index, attendee[1], "hanoi")
-                        }
-                        disabled={attendee[3] === "Yes"}>
-                        {attendee[3] === "Yes" ? "Sent" : "Send"}
-                      </Button>
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Separator */}
-      <div className="my-8 border-t-2 border-gray-200" />
-
-      {/* Guangzhou Table */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Guangzhou Attendees</h2>
-        <table className="min-w-full border-collapse border border-gray-300">
-          {/* Similar structure as Hanoi table */}
-          <tbody>
-            {guangzhouAttendees.map((attendee, index) => (
-              <tr key={index}>
-                {editIndex?.index === index &&
-                editIndex?.location === "guangzhou" ? (
-                  // Edit mode fields same as Hanoi table
-                  <>
-                    <td className="border border-gray-300 p-2">
-                      <Input
-                        value={tempValues[0]}
-                        onChange={(e) => handleInputChange(e, 0)}
-                      />
-                    </td>
-                    {/* ... other editable fields ... */}
-                    <td className="border border-gray-300 p-2">
-                      <Button onClick={handleSaveClick}>Save</Button>
-                    </td>
-                  </>
-                ) : (
-                  // Display mode fields
-                  <>
-                    <td className="border border-gray-300 p-2">
-                      {attendee[0]}
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      {attendee[1]}
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      {attendee[2]}
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      {attendee[3]}
-                    </td>
-                    <td className="border border-gray-300 p-2 space-x-2">
-                      <Button
-                        onClick={() => handleEditClick(index, "guangzhou")}
-                        variant="outline"
-                        size="sm">
-                        <EditIcon className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteRow(index, "guangzhou")}
-                        variant="destructive"
-                        size="sm">
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
-                    </td>
-                    <td className="border border-gray-300 p-2">
-                      <Button
-                        onClick={() =>
-                          handleSendEmail(index, attendee[1], "guangzhou")
-                        }
-                        disabled={attendee[3] === "Yes"}>
-                        {attendee[3] === "Yes" ? "Sent" : "Send"}
-                      </Button>
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
+            {Array.isArray(hanoiAttendees) &&
+              hanoiAttendees.map((attendee, index) => (
+                <tr key={index}>
+                  {editIndex?.index === index &&
+                  editIndex?.location === "hanoi" ? (
+                    <>
+                      <td className="border border-gray-300 p-2">
+                        <Input
+                          value={tempValues[0] ?? ""}
+                          onChange={(e) =>
+                            setTempValues((prev) => {
+                              const newValues = [...prev];
+                              newValues[0] = e.target.value;
+                              return newValues;
+                            })
+                          }
+                        />
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <Input
+                          value={tempValues[1]}
+                          onChange={(e) =>
+                            setTempValues((prev) => {
+                              const newValues = [...prev];
+                              newValues[1] = e.target.value;
+                              return newValues;
+                            })
+                          }
+                        />
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <select
+                          value={tempValues[2]}
+                          onChange={(e) =>
+                            setTempValues((prev) => {
+                              const newValues = [...prev];
+                              newValues[2] = e.target.value;
+                              return newValues;
+                            })
+                          }
+                          className="border rounded p-1 w-full">
+                          <option value="Happily Accepted">
+                            Happily Accepted
+                          </option>
+                          <option value="Regretfully Declined">
+                            Regretfully Declined
+                          </option>
+                        </select>
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <select
+                          value={tempValues[3]}
+                          onChange={(e) =>
+                            setTempValues((prev) => {
+                              const newValues = [...prev];
+                              newValues[3] = e.target.value;
+                              return newValues;
+                            })
+                          }
+                          className="border rounded p-1 w-full">
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <Input
+                          value={tempValues[4]}
+                          onChange={(e) =>
+                            setTempValues((prev) => {
+                              const newValues = [...prev];
+                              newValues[4] = e.target.value;
+                              return newValues;
+                            })
+                          }
+                        />
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <select
+                          value={tempValues[5]}
+                          onChange={(e) =>
+                            setTempValues((prev) => {
+                              const newValues = [...prev];
+                              newValues[5] = e.target.value;
+                              return newValues;
+                            })
+                          }
+                          className="border rounded p-1 w-full">
+                          <option value="normal">Normal</option>
+                          <option value="bachelor">Bachelor</option>
+                          <option value="bachelorette">Bachelorette</option>
+                        </select>
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {tempValues[6]}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <Button
+                          onClick={() =>
+                            handleSaveClick(
+                              editIndex,
+                              tempValues,
+                              setHanoiAttendees,
+                              setGuangzhouAttendees,
+                              setEditIndex
+                            )
+                          }>
+                          Save
+                        </Button>
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {tempValues[8]}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {tempValues[9]}
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="border border-gray-300 p-2">
+                        {attendee[0]}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {attendee[1]}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {attendee[2]}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {attendee[3]}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {attendee[4]}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {attendee[5]}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {attendee[6]}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <Button
+                          onClick={() =>
+                            handleEditClick(
+                              index,
+                              "hanoi",
+                              hanoiAttendees,
+                              setEditIndex,
+                              setTempValues
+                            )
+                          }>
+                          <EditIcon size={16} />
+                        </Button>
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <Button
+                          onClick={() =>
+                            handleDeleteRow(
+                              index,
+                              "Hanoi",
+                              attendee,
+                              setHanoiAttendees,
+                              setError
+                            )
+                          }>
+                          <TrashIcon size={16} color="red" />
+                        </Button>
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <Button
+                          onClick={() =>
+                            handleSendEmail(
+                              index,
+                              "hanoi",
+                              attendee,
+                              setHanoiAttendees,
+                              setError
+                            )
+                          }>
+                          <Mail size={16} />
+                        </Button>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>

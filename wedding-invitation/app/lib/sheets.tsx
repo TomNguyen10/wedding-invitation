@@ -96,3 +96,25 @@ export const deleteRowFromSheet = async (
     requestBody,
   });
 };
+
+export const appendRowToSheet = async (
+  spreadsheetId: string,
+  sheetName: string,
+  values: any[]
+) => {
+  const auth = await getAuth();
+
+  const range = `${sheetName}!A:D`;
+
+  const response = await sheets.spreadsheets.values.append({
+    auth,
+    spreadsheetId,
+    range,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [values],
+    },
+  } as sheetsTypes.Params$Resource$Spreadsheets$Values$Append);
+
+  return response.data;
+};

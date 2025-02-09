@@ -3,6 +3,7 @@ import {
   fetchSheetData,
   updateSheetData,
   deleteRowFromSheet,
+  appendRowToSheet,
 } from "../../lib/sheets";
 
 const SHEET_ID = process.env.SHEET_ID!;
@@ -25,16 +26,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { rowIndex, values, sheet } = await request.json();
+  const { values, sheet } = await request.json();
   const sheetName = sheet || "Hanoi";
 
   try {
-    await updateSheetData(
-      SHEET_ID,
-      `${sheetName}!A${rowIndex + 1}:D${rowIndex + 1}`,
-      values
-    );
-    return NextResponse.json({ message: "Update successful" });
+    await appendRowToSheet(SHEET_ID, sheetName, values);
+    return NextResponse.json({ message: "Row added successfully!" });
   } catch (error) {
     console.error("Error updating sheet data:", error);
     return NextResponse.json(
