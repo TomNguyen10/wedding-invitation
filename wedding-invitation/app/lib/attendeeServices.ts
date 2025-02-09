@@ -28,7 +28,7 @@ export const handleSaveClick = async (
 
   try {
     await fetch("/api/sheets", {
-      method: "POST",
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
@@ -52,6 +52,7 @@ export const handleSaveClick = async (
         return newAttendees;
       });
     }
+
     alert("Update successful!");
   } catch (err) {
     alert("Failed to update data.");
@@ -170,7 +171,6 @@ export const handleDeleteRow = async (
 ) => {
   if (!confirm("Are you sure you want to delete this attendee?")) return;
 
-  // Optimistically update state
   if (location === "hanoi") {
     setHanoiAttendees((prev: any[]) => prev.filter((_, i) => i !== index));
   } else {
@@ -186,7 +186,6 @@ export const handleDeleteRow = async (
 
     if (!response.ok) throw new Error("Failed to delete row");
 
-    // Refetch to ensure UI is in sync
     fetchSheetData(
       location,
       location === "hanoi" ? setHanoiAttendees : setGuangzhouAttendees,
@@ -212,8 +211,8 @@ export const handleSendEmail = async (
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to: email,
-        subject: "Your Subject",
-        message: "Your Message",
+        subject: "Wedding Invitation",
+        message: "Hello, you are invited to our wedding!",
       }),
     });
 
@@ -237,6 +236,10 @@ export const handleSendEmail = async (
       });
     }
     const updatedAttendees = currentAttendees;
+    if (!updatedAttendees[index]) {
+      console.error(`Error: No attendee found at index ${index}`);
+      return;
+    }
     updatedAttendees[index][3] = "Yes";
 
     if (sheetType === "hanoi") {

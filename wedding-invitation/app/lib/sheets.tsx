@@ -31,15 +31,18 @@ export const fetchSheetData = async (spreadsheetId: string, range: string) => {
 
 export const updateSheetData = async (
   spreadsheetId: string,
-  range: string,
+  sheetName: string,
+  rowIndex: number,
   values: any[]
 ) => {
   const auth = await getAuth();
+  const columnRange = `A${rowIndex + 1}:G${rowIndex + 1}`;
+  const fullRange = `${sheetName}!${columnRange}`;
 
   const response = await sheets.spreadsheets.values.update({
     auth,
     spreadsheetId,
-    range,
+    range: fullRange,
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [values],

@@ -33,7 +33,7 @@ const HomePage: React.FC = () => {
     plusOne: "No",
     note: "",
     role: "normal",
-    sent: "False",
+    sent: "No",
     location: "hanoi",
   });
 
@@ -299,10 +299,10 @@ const HomePage: React.FC = () => {
                           onClick={() =>
                             handleSendEmail(
                               index,
+                              attendee[1],
                               "hanoi",
-                              attendee,
                               setHanoiAttendees,
-                              setError
+                              setGuangzhouAttendees
                             )
                           }>
                           <Mail size={16} />
