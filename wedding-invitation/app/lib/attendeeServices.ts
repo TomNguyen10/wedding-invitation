@@ -26,6 +26,8 @@ export const handleSaveClick = async (
 ) => {
   if (!editIndex) return;
 
+  const sheetName = editIndex.location === "hanoi" ? "Hanoi" : "Guangzhou";
+
   try {
     await fetch("/api/sheets", {
       method: "PUT",
@@ -35,7 +37,7 @@ export const handleSaveClick = async (
       body: JSON.stringify({
         rowIndex: editIndex.index,
         values: tempValues,
-        location: editIndex.location,
+        sheet: sheetName,
       }),
     });
 
